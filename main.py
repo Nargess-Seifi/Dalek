@@ -1,22 +1,27 @@
-import machine
+import os
+import ujson as js
 import time
 import network
-import os
+import machine
 import urequests as rq
 
+################### constants #####################
 SSID = "Galaxy A73"
 key = "00000000"
+apiKey = 'lOoRtUsEPgHPxp4ZG5YfocnowXvio4iQupbp9OGb'    
+apiUrl = 'https://api.nasa.gov/planetary/apod'
 
-
-parameters = {
-    "appid": "66ZDSC4P4ZMS"
-}
-
-
-uart = machine.UART(0, baudrate=115200 )
+################### functions #####################
+def init():
+    pin = machine.Pin(2, machine.Pin.OUT)
+    pin2 = machine.Pin(16, machine.Pin.OUT)
+    pin.value(1)
+    pin2.value(1)
+    uart = machine.UART(0, baudrate=115200 )
 
 
 def do_connect():
+
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
     if not wlan.isconnected():
@@ -24,33 +29,29 @@ def do_connect():
         wlan.connect(SSID, key)
         while not wlan.isconnected():
             pass
+    time.sleep(1)
     uart.write('\nconnected\n')
+    pin.value(0)
 
-
-pin = machine.Pin(2, machine.Pin.OUT)
-pin2 = machine.Pin(16, machine.Pin.OUT)
-
-do_connect()
 
 while(True):
-    uart.write("tryna send a req\n")
-#    response_API = rq.request(method = GET, 'http://api.timezonedb.com/v2.1/list-time-zone', key = '66ZDSC4P4ZMS')
- #   response_API = rq.get('http://api.timezonedb.com/v2.1/list-time-zone')
-  #  response = urequests.get('https://dog.ceo/api/breeds/image/random')
- #   uart.write("request submited")
-#    uart.write(str(type(response)))
+    init()
+    do_connect()
     
-    
-    s=time.time()
-
+    uart.write("tryna send a req\n")   
+    rurl = apiUrl + '?api_key=' + apiKey 
     try:
-        uart.write("inja\n")
-        r = rq.get('https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY')
-    except rq.exceptions.Timeout as err: 
-        uart.write(str(err))
-        time.sleep(1)
-
-    uart.write('injaaaaaaaa')
+        r = rq.get(rurl)
+        
+        uart.write('req OK\n')
+        res = js.loads(r.text)
+        for k in res.keys():
+            uart.write(k + '\t')
+        uart.write('\n')
+        
+ 
+        break
+        #uart.write(temp + ' - ' + str(time.time()-s) + ' Seconds')
     
-    temp = r.text
-    uart.write(temp + ' - ' + str(time.time()-s) + ' Seconds')    
+    except:
+        uart.write("time out\n")
